@@ -124,9 +124,14 @@ async function persistMainConfig() {
 }
 
 async function saveSettings() {
+  const rawUrl = document.getElementById('s-url').value.trim().replace(/\/$/, '');
+  if (!rawUrl.startsWith('https://')) {
+    showSettingsStatus('URL must use HTTPS.', 'error');
+    return;
+  }
   const obj = {
     ...settings,
-    url:   document.getElementById('s-url').value.trim().replace(/\/$/, ''),
+    url:   rawUrl,
     email: document.getElementById('s-email').value.trim(),
     token: document.getElementById('s-token').value.trim(),
   };
@@ -878,6 +883,12 @@ async function loadFieldDefinitions() {
 
 // ── JIRA API ───────────────────────────────────────────────────────────────
 function jiraFetch(url, email, token, options = {}) {
+  if (settings.url) {
+    const allowedOrigin = new URL(settings.url).origin;
+    if (!url.startsWith(allowedOrigin + '/')) {
+      return Promise.reject(new Error(`Blocked fetch to untrusted origin: ${url}`));
+    }
+  }
   const headers = {
     'Authorization': `Basic ${btoa(`${email}:${token}`)}`,
     'Accept': 'application/json',
